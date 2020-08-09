@@ -1,5 +1,6 @@
 """Github Asset Source."""
 
+from abc import abstractmethod
 from re import compile
 from typing import Any, List, Optional
 
@@ -9,8 +10,8 @@ from pydantic import BaseModel, Extra, constr
 from .source import PackageSource, Release
 
 
-class GitHubAssetSource(PackageSource):
-    """Github Asset Source."""
+class GithubBaseClass(PackageSource):
+    """Github base class."""
 
     class ConfigSchema(BaseModel):
         """Config Schema."""
@@ -99,6 +100,15 @@ class GitHubAssetSource(PackageSource):
             self,
             self._get_version(self.selected),
         )
+
+    @abstractmethod
+    def get_source_url(self, release: Release) -> str:
+        """Get the source url."""
+        raise NotImplementedError
+
+
+class GitHubAssetSource(GithubBaseClass):
+    """Github Asset Source."""
 
     def get_source_url(self, release: Release) -> str:
         """Get the source url."""
