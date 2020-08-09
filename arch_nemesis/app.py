@@ -41,6 +41,32 @@ def check(config: TextIO) -> None:
             exit(1)
 
 
+@main.command('clean')
+@click.option('--cache/--no-cache', default=True, help="Cache downloaded assets")
+@click.option(
+    '--config',
+    default="arch-nemesis.yml",
+    type=click.File("r"),
+    help="Location of configuration file",
+)
+def clean(cache: bool, config: TextIO) -> None:
+    """Clean up rendered repos."""
+    conf = Config.load_from_yaml(config)
+
+    build_dir = Path("build")
+
+    if cache:
+        for dire in build_dir.iterdir():
+            if dire.stem in map(lambda p: p.name, conf.packages):
+                repo = dire / "repo"
+                if repo.exists():
+                    rmtree(repo)
+            else:
+                rmtree(dire)
+    else:
+        rmtree(build_dir)
+
+
 def process_package(package: Package) -> None:
     """Process a package."""
     click.secho(f"Updating {package.name}", fg='green')
