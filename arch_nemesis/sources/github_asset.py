@@ -13,20 +13,6 @@ from .source import PackageSource, Release
 class GithubBaseClass(PackageSource):
     """Github base class."""
 
-    class ConfigSchema(BaseModel):
-        """Config Schema."""
-
-        class Config:
-            """Config."""
-
-            extra = Extra.forbid
-
-        github_repo: constr(regex=u"^([A-Za-z0-9-_]*)\/([A-Za-z0-9-_]*)$")  # type: ignore
-        allow_prereleases: bool = False
-        source_regex: str
-        version_regex: str = "(.*)"
-        version_group_order: List[int] = []
-
     def __init__(self, config: Any) -> None:
         self.config = config
 
@@ -110,6 +96,40 @@ class GithubBaseClass(PackageSource):
 class GitHubAssetSource(GithubBaseClass):
     """Github Asset Source."""
 
+    class ConfigSchema(BaseModel):
+        """Config Schema."""
+
+        class Config:
+            """Config."""
+
+            extra = Extra.forbid
+
+        github_repo: constr(regex=u"^([A-Za-z0-9-_]*)\/([A-Za-z0-9-_]*)$")  # type: ignore
+        allow_prereleases: bool = False
+        source_regex: str
+        version_regex: str = "(.*)"
+        version_group_order: List[int] = []
+
     def get_source_url(self, release: Release) -> str:
         """Get the source url."""
         return self._find_source_asset(self.selected).browser_download_url
+
+class GitHubTarSource(GithubBaseClass):
+    """Github Tar Source."""
+
+    class ConfigSchema(BaseModel):
+        """Config Schema."""
+
+        class Config:
+            """Config."""
+
+            extra = Extra.forbid
+
+        github_repo: constr(regex=u"^([A-Za-z0-9-_]*)\/([A-Za-z0-9-_]*)$")  # type: ignore
+        allow_prereleases: bool = False
+        version_regex: str = "(.*)"
+        version_group_order: List[int] = []
+
+    def get_source_url(self, release: Release) -> str:
+        """Get the source url."""
+        return self.selected.tarball_url

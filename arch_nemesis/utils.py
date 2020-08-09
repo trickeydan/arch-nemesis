@@ -67,7 +67,10 @@ def download_asset(url: str, folder: Path) -> Path:
     with requests.get(url, stream=True) as r:
         r.raise_for_status()
 
-        total_size = int(r.headers["Content-Length"])
+        try:
+            total_size = int(r.headers["Content-Length"])
+        except KeyError:
+            total_size = 1000
 
         if local_filepath.exists() and local_filepath.stat().st_size == total_size:
             print("Found in cache")
