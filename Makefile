@@ -5,7 +5,7 @@ PYMODULE:=arch_nemesis
 TESTS:=tests
 EXTRACODE:=
 
-all: type lint
+all: lint
 
 lint:
 	$(CMD) flake8 $(PYMODULE) $(TESTS) $(EXTRACODE)

@@ -10,8 +10,10 @@ ignore =
     #Don't require docstrings on magic methods.
     D105,
     #Don't require docstrings for __init__ methods.
-    D107
+    D107,
     #Don't require imperative mood docstrings.
-    D401
+    D401,
+    F722,
+    W605,
 
 max_line_length = 90
