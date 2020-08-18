@@ -30,6 +30,21 @@ def process_source(
 
     return source_url, file_hash, source.get_latest_release()
 
+def _generate_srcinfo(dest: Path) -> None:
+    """Generate a .SRCINFO file in a given directory."""
+    src_info = check_output(["makepkg", "--printsrcinfo"], cwd=dest)
+    src_info_path = dest / ".SRCINFO"
+    with src_info_path.open("wb") as fh:
+        fh.write(src_info)
+
+def _update_repo(commit: bool = True, push: bool = True) -> None:
+    """Update the repo."""
+    click.secho("Updating AUR")
+    if commit:
+        repo.git.add(".")
+        repo.git.commit("-m", f"Updated to {release_version}")
+    if push:
+        repo.git.push()
 
 def process_package(
     package: Package,
@@ -62,9 +77,10 @@ def process_package(
     dest = build_path / "repo"
 
     if dest.exists():
+        click.secho("Removed existing repo", fg="cyan")
         rmtree(dest)
 
-    click.secho("Cloning from AUR")
+    click.secho("Cloning from AUR", fg="cyan")
     repo = Repo.clone_from(f"ssh://aur@aur.archlinux.org/{package.name}.git", dest)
 
     pkgbuild = parse_pkgbuild(dest / "PKGBUILD")
@@ -87,11 +103,7 @@ def process_package(
         checksum_str=checksum_str.strip(),
         version=release_version,
     )
-
-    src_info = check_output(["makepkg", "--printsrcinfo"], cwd=dest)
-    src_info_path = dest / ".SRCINFO"
-    with src_info_path.open("wb") as fh:
-        fh.write(src_info)
+    _generate_srcinfo(dest)
 
     if repo.is_dirty():
         # Update rel
@@ -101,7 +113,6 @@ def process_package(
             rel = 1
         # Second iteration
         click.secho(f"Updated rel to {rel}")
-        # TODO: Reduce code duplication here
         copy_dir(
             package.template,
             dest,
@@ -111,17 +122,9 @@ def process_package(
             checksum_str=checksum_str.strip(),
             version=release_version,
         )
+        _generate_srcinfo(dest)
 
-        src_info = check_output(["makepkg", "--printsrcinfo"], cwd=dest)
-        src_info_path = dest / ".SRCINFO"
-        with src_info_path.open("wb") as fh:
-            fh.write(src_info)
-
-        click.secho("Updating AUR")
-        if commit:
-            repo.git.add(".")
-            repo.git.commit("-m", f"Updated to {release_version}")
-        if push:
-            repo.git.push()
+        _update_repo(commit, push)
+        
     else:
         click.secho(f"No changes required for {package.name}")
