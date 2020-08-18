@@ -3,35 +3,32 @@
 from pathlib import Path
 from shutil import rmtree
 from subprocess import check_output
-from typing import List, Tuple, cast
+from typing import Optional, Tuple, cast
 
 import click
 from git import Repo
 
 from .schema import Package, SourceInfo
-from .sources import PackageSource, Release
+from .sources import PackageSource
 from .utils import copy_dir, download_asset, hash_file, parse_pkgbuild
 
 
 def process_source(
     source_info: SourceInfo,
     build_path: Path,
-    release: Release,
-) -> Tuple[str, str, str]:
+) -> Tuple[str, str, Optional[str]]:
     """Process a source to get the URL and checksum."""
     source_config = source_info.strategy.ConfigSchema(**source_info.config)
     source = cast(PackageSource, source_info.strategy(source_config))
 
-    assert release == source.get_latest_release()
-
-    source_url = source.get_source_url(release)
+    source_url = source.get_source_url()
 
     source_file = download_asset(source_url, build_path)
 
     file_hash = hash_file(source_file)
     click.secho(f"SHA512: {file_hash}")
 
-    return source_url, file_hash
+    return source_url, file_hash, source.get_latest_release()
 
 
 def process_package(
@@ -43,36 +40,24 @@ def process_package(
     """Process a package."""
     click.secho(f"Updating {package.name}", fg='green')
 
-    # TODO: Choose the version in a better way
-    source_info = package.sources[0]
-
-    source_config = source_info.strategy.ConfigSchema(**source_info.config)
-    source = cast(PackageSource, source_info.strategy(source_config))
-
-    release = source.get_latest_release()
-    click.secho(f"Latest release: {release.version}")
-
     build_path = Path("build", package.name)
 
-    source_urls: List[str] = []
-    asset_hashes: List[str] = []
+    source_str = ""
+    checksum_str = ""
+    release_version = None
 
     for source_info in package.sources:
-        url, checksum = process_source(source_info, build_path, release)
-        source_urls.append(url)
-        asset_hashes.append(checksum)
-
-    assert len(asset_hashes) == len(source_urls)
-
-    source_str = ""
-    for url in source_urls:
+        url, checksum, version = process_source(source_info, build_path)
         source_str += f"'{url}' "
+        checksum_str += f"'{checksum}' "
+        if release_version is None:
+            release_version = version
+        else:
+            if release_version != version:
+                raise Exception("Mismatched version between sources.")
 
-    checksum_str = ""
-    for check in asset_hashes:
-        checksum_str += f"'{check}' "
-
-    click.secho(f"Processed {len(asset_hashes)} sources.")
+    click.secho(f"Processed {len(package.sources)} sources.")
+    click.secho(f"Latest release: {release_version}")
 
     dest = build_path / "repo"
 
@@ -100,7 +85,7 @@ def process_package(
         package=package,
         source_str=source_str.strip(),
         checksum_str=checksum_str.strip(),
-        version=release.version,
+        version=release_version,
     )
 
     src_info = check_output(["makepkg", "--printsrcinfo"], cwd=dest)
@@ -110,7 +95,7 @@ def process_package(
 
     if repo.is_dirty():
         # Update rel
-        if pkgbuild["pkgver"] == release.version:
+        if pkgbuild["pkgver"] == release_version:
             rel += 1
         else:
             rel = 1
@@ -124,7 +109,7 @@ def process_package(
             package=package,
             source_str=source_str.strip(),
             checksum_str=checksum_str.strip(),
-            version=release.version,
+            version=release_version,
         )
 
         src_info = check_output(["makepkg", "--printsrcinfo"], cwd=dest)
@@ -135,7 +120,7 @@ def process_package(
         click.secho("Updating AUR")
         if commit:
             repo.git.add(".")
-            repo.git.commit("-m", f"Updated to {release.version}")
+            repo.git.commit("-m", f"Updated to {release_version}")
         if push:
             repo.git.push()
     else:

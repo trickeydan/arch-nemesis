@@ -110,7 +110,7 @@ def go(
         click.secho(
             "Warning: Pushing and not committing may have unexpected results.",
             err=True,
-            fg="yellow"
+            fg="yellow",
         )
 
     if package is None:

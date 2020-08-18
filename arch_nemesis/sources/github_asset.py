@@ -4,10 +4,11 @@ from abc import abstractmethod
 from re import compile
 from typing import Any, List, Optional
 
-from github import Github
+from github import Github, PaginatedList
+from github.GitRelease import GitRelease
 from pydantic import BaseModel, Extra, constr
 
-from .source import PackageSource, Release
+from .source import PackageSource
 
 
 class GithubBaseClass(PackageSource):
@@ -19,9 +20,11 @@ class GithubBaseClass(PackageSource):
         gh = Github("e7c0110cdf64a8fa718c2e4d41dc24c0495ccbbb")
         self.repo = gh.get_repo(self.config.github_repo)
 
-    def _get_most_recent(self):
+        self.selected = self._get_most_recent()
+
+    def _get_most_recent(self) -> GitRelease:
         """Get the most recent release."""
-        releases = self.repo.get_releases()
+        releases: PaginatedList[GitRelease] = self.repo.get_releases()
         if self.config.allow_prereleases:
             return releases[0]
         else:
@@ -30,7 +33,7 @@ class GithubBaseClass(PackageSource):
                     return release
         raise Exception("No suitable releases found.")
 
-    def _get_version(self, release) -> str:
+    def _get_version(self, release: GitRelease) -> str:
         tag = release.tag_name
         regex = compile(self.config.version_regex)
         res = regex.fullmatch(tag)
@@ -47,7 +50,7 @@ class GithubBaseClass(PackageSource):
                 raise Exception("Bad Version Group Order")
         return res.groups()[0]
 
-    def _find_source_asset(self, release):
+    def _find_source_asset(self, release: GitRelease):
         """Find the right asset."""
         assets = release.get_assets()
         regex = compile(self.config.source_regex)
@@ -78,17 +81,12 @@ class GithubBaseClass(PackageSource):
             # All the same size
         return list(candidates.values())[0]
 
-    def get_latest_release(self) -> Release:
+    def get_latest_release(self) -> Optional[str]:
         """Get the latest release."""
-        self.selected = self._get_most_recent()
-
-        return Release(
-            self,
-            self._get_version(self.selected),
-        )
+        return self._get_version(self.selected)
 
     @abstractmethod
-    def get_source_url(self, release: Release) -> str:
+    def get_source_url(self) -> str:
         """Get the source url."""
         raise NotImplementedError
 
@@ -110,7 +108,7 @@ class GitHubAssetSource(GithubBaseClass):
         version_regex: str = "(.*)"
         version_group_order: List[int] = []
 
-    def get_source_url(self, release: Release) -> str:
+    def get_source_url(self) -> str:
         """Get the source url."""
         return self._find_source_asset(self.selected).browser_download_url
 
@@ -131,6 +129,6 @@ class GitHubTarSource(GithubBaseClass):
         version_regex: str = "(.*)"
         version_group_order: List[int] = []
 
-    def get_source_url(self, release: Release) -> str:
+    def get_source_url(self) -> str:
         """Get the source url."""
         return self.selected.tarball_url

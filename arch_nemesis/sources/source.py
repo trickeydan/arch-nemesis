@@ -1,23 +1,9 @@
 """A package source."""
 
 from abc import ABCMeta, abstractmethod
+from typing import Optional
 
 from pydantic import BaseModel
-
-
-class Release:
-    """A release."""
-
-    def __init__(
-        self,
-        source: 'PackageSource',
-        version: str,
-    ) -> None:
-        self.source = source
-        self.version = version
-
-    def __eq__(self, other) -> bool:
-        return self.version == other.version
 
 
 class PackageSource(metaclass=ABCMeta):
@@ -30,11 +16,11 @@ class PackageSource(metaclass=ABCMeta):
         self.config = config
 
     @abstractmethod
-    def get_latest_release(self) -> Release:
+    def get_latest_release(self) -> Optional[str]:
         """Get the latest release."""
         raise NotImplementedError
 
     @abstractmethod
-    def get_source_url(self, release: Release) -> str:
+    def get_source_url(self) -> str:
         """Get the source url."""
         raise NotImplementedError
