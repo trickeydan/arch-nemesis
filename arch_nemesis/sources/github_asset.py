@@ -114,6 +114,7 @@ class GitHubAssetSource(GithubBaseClass):
         """Get the source url."""
         return self._find_source_asset(self.selected).browser_download_url
 
+
 class GitHubTarSource(GithubBaseClass):
     """Github Tar Source."""
 

@@ -3,14 +3,14 @@
 from pathlib import Path
 from shutil import rmtree
 from subprocess import check_output
-from typing import TextIO, cast
+from typing import TextIO, Tuple, cast
 
 import click
 from git import Repo
 from pydantic import ValidationError
 
-from .schema import Config, Package
-from .sources import PackageSource
+from .schema import Config, Package, SourceInfo
+from .sources import PackageSource, Release
 from .utils import copy_dir, download_asset, hash_file
 
 
@@ -33,12 +33,13 @@ def check(config: TextIO) -> None:
 
     # Check source configs
     for package in conf.packages:
-        try:
-            package.source.ConfigSchema(**package.source_config)
-        except ValidationError as error:
-            click.secho(f"Error in source config for {package.name}", fg='red', err=True)
-            click.secho(str(error), fg='red', err=True)
-            exit(1)
+        for source in package.sources:
+            try:
+                source.strategy.ConfigSchema(**source.config)
+            except ValidationError as error:
+                click.secho(f"Error in source config for {package.name}", fg='red', err=True)
+                click.secho(str(error), fg='red', err=True)
+                exit(1)
 
 
 @main.command('clean')
@@ -67,17 +68,12 @@ def clean(cache: bool, config: TextIO) -> None:
         rmtree(build_dir)
 
 
-def process_package(package: Package) -> None:
-    """Process a package."""
-    click.secho(f"Updating {package.name}", fg='green')
+def process_source(source_info: SourceInfo, build_path: Path, release: Release) -> Tuple[str, str, str]:
+    """Process a source to get the URL and checksum."""
+    source_config = source_info.strategy.ConfigSchema(**source_info.config)
+    source = cast(PackageSource, source_info.strategy(source_config))
 
-    source_config = package.source.ConfigSchema(**package.source_config)
-    source = cast(PackageSource, package.source(source_config))
-
-    release = source.get_latest_release()
-    click.secho(f"Latest release: {release.version}")
-
-    build_path = Path("build", package.name)
+    assert release == source.get_latest_release()
 
     source_url = source.get_source_url(release)
 
@@ -85,6 +81,43 @@ def process_package(package: Package) -> None:
 
     file_hash = hash_file(source_file)
     click.secho(f"SHA512: {file_hash}")
+
+    return source_url, file_hash
+
+
+def process_package(package: Package) -> None:
+    """Process a package."""
+    click.secho(f"Updating {package.name}", fg='green')
+
+    source_info = package.sources[0]
+
+    source_config = source_info.strategy.ConfigSchema(**source_info.config)
+    source = cast(PackageSource, source_info.strategy(source_config))
+
+    release = source.get_latest_release()
+    click.secho(f"Latest release: {release.version}")
+
+    build_path = Path("build", package.name)
+
+    source_urls: List[str] = []
+    asset_hashes: List[str] = []
+
+    for source_info in package.sources:
+        url, checksum = process_source(source_info, build_path, release)
+        source_urls.append(url)
+        asset_hashes.append(checksum)
+
+    assert len(asset_hashes) == len(source_urls)
+
+    source_str = ""
+    for url in source_urls:
+        source_str += f"'{url}' "
+
+    checksum_str = ""
+    for check in asset_hashes:
+        checksum_str += f"'{check}' "
+
+    click.secho(f"Processed {len(asset_hashes)} sources.")
 
     dest = build_path / "repo"
 
@@ -99,8 +132,8 @@ def process_package(package: Package) -> None:
         package.template,
         dest,
         package=package,
-        source_url=source_url,
-        asset_hash=file_hash,
+        source_str=source_str.strip(),
+        checksum_str=checksum_str.strip(),
         version=release.version,
     )
 

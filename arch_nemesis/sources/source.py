@@ -16,6 +16,9 @@ class Release:
         self.source = source
         self.version = version
 
+    def __eq__(self, other) -> bool:
+        return self.version == other.version
+
 
 class PackageSource(metaclass=ABCMeta):
     """A package source."""

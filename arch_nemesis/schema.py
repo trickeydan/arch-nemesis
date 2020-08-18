@@ -7,6 +7,17 @@ import click
 from pydantic import BaseModel, DirectoryPath, Extra, PyObject, ValidationError
 from ruamel.yaml import YAML
 
+class SourceInfo(BaseModel):
+    """Info to get a source."""
+
+    class Config:
+        """Config."""
+
+        extra = Extra.forbid
+
+    strategy: PyObject
+    config: Any
+
 
 class Package(BaseModel):
     """A package to build."""
@@ -19,8 +30,8 @@ class Package(BaseModel):
     name: str
     rel: int = 1
     template: DirectoryPath
-    source: PyObject
-    source_config: Any
+    sources: List[SourceInfo]
+    
 
 
 class Config(BaseModel):
