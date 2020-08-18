@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from .schema import Config, Package, SourceInfo
 from .sources import PackageSource, Release
-from .utils import copy_dir, download_asset, hash_file
+from .utils import copy_dir, download_asset, hash_file, parse_pkgbuild
 
 
 @click.group('arch-nemesis')
@@ -89,6 +89,7 @@ def process_package(package: Package) -> None:
     """Process a package."""
     click.secho(f"Updating {package.name}", fg='green')
 
+    # TODO: Choose the version in a better way
     source_info = package.sources[0]
 
     source_config = source_info.strategy.ConfigSchema(**source_info.config)
@@ -127,10 +128,21 @@ def process_package(package: Package) -> None:
     click.secho("Cloning from AUR")
     repo = Repo.clone_from(f"ssh://aur@aur.archlinux.org/{package.name}.git", dest)
 
+    pkgbuild = parse_pkgbuild(dest / "PKGBUILD")
+
+    if len(pkgbuild) == 0:
+        raise Exception("Seems to be a new package. Not supported yet.")
+
+    rel = int(pkgbuild["pkgrel"])
+
+    click.secho(f"Current pkgrel is {rel}")
+
+    # First iteration
     click.secho("Update repo from template")
     copy_dir(
         package.template,
         dest,
+        rel=rel,
         package=package,
         source_str=source_str.strip(),
         checksum_str=checksum_str.strip(),
@@ -142,7 +154,32 @@ def process_package(package: Package) -> None:
     with src_info_path.open("wb") as fh:
         fh.write(src_info)
 
+
     if repo.is_dirty():
+        # Update rel
+        if pkgbuild["pkgver"] == release.version:
+            rel += 1
+        else:
+            rel = 1
+        # Second iteration
+        click.secho(f"Updated rel to {rel}")
+        # TODO: Reduce code duplication here
+        copy_dir(
+            package.template,
+            dest,
+            rel=rel,
+            package=package,
+            source_str=source_str.strip(),
+            checksum_str=checksum_str.strip(),
+            version=release.version,
+        )
+
+        src_info = check_output(["makepkg", "--printsrcinfo"], cwd=dest)
+        src_info_path = dest / ".SRCINFO"
+        with src_info_path.open("wb") as fh:
+            fh.write(src_info)
+
+
         click.secho("Updating AUR")
         repo.git.add(".")
         repo.git.commit("-m", f"Updated to {release.version}")

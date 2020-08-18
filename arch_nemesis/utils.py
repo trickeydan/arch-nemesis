@@ -2,8 +2,9 @@
 
 import hashlib
 from pathlib import Path
+from re import compile
 from shutil import copy
-from typing import Any, List
+from typing import Any, Dict, List
 
 import click
 import requests
@@ -82,3 +83,19 @@ def download_asset(url: str, folder: Path) -> Path:
                     f.write(chunk)
                     bar.update(len(chunk))
     return local_filepath
+
+
+def parse_pkgbuild(path: Path) -> Dict[str, str]:
+    """Parse the options in a PKGBUILD."""
+    regex = compile("^(.*)[ ]*=[ ]*(.*)[ ]*$")  # TODO: Fix backtracking regex ew
+
+    data: Dict[str, str] = {}
+
+    with path.open("r") as fh:
+        contents = fh.readlines()
+        for line in contents:
+            match = regex.match(line.strip())
+            if match:
+                data[match[1]] = match[2].strip()
+
+    return data

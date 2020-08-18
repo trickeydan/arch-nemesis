@@ -28,7 +28,6 @@ class Package(BaseModel):
         extra = Extra.forbid
 
     name: str
-    rel: int = 1
     template: DirectoryPath
     sources: List[SourceInfo]
     
