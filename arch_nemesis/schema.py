@@ -7,6 +7,7 @@ import click
 from pydantic import BaseModel, DirectoryPath, Extra, PyObject, ValidationError
 from ruamel.yaml import YAML
 
+
 class SourceInfo(BaseModel):
     """Info to get a source."""
 
@@ -30,7 +31,6 @@ class Package(BaseModel):
     name: str
     template: DirectoryPath
     sources: List[SourceInfo]
-    
 
 
 class Config(BaseModel):
