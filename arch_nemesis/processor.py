@@ -34,7 +34,12 @@ def process_source(
     return source_url, file_hash
 
 
-def process_package(package: Package) -> None:
+def process_package(
+    package: Package,
+    *,
+    commit: bool = True,
+    push: bool = True,
+) -> None:
     """Process a package."""
     click.secho(f"Updating {package.name}", fg='green')
 
@@ -128,8 +133,10 @@ def process_package(package: Package) -> None:
             fh.write(src_info)
 
         click.secho("Updating AUR")
-        repo.git.add(".")
-        repo.git.commit("-m", f"Updated to {release.version}")
-        repo.git.push()
+        if commit:
+            repo.git.add(".")
+            repo.git.commit("-m", f"Updated to {release.version}")
+        if push:
+            repo.git.push()
     else:
         click.secho(f"No changes required for {package.name}")

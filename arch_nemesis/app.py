@@ -86,24 +86,43 @@ def clean(cache: bool, config: TextIO) -> None:
     type=click.STRING,
     help="Update all packages except this one",
 )
+@click.option(
+    '--push/--no-push',
+    default=True,
+    help="Specify if commits should be pushed to the AUR, defaults to True",
+)
+@click.option(
+    '--commit/--no-commit',
+    default=True,
+    help="Specify if changes should be committed automatically, defaults to True",
+)
 def go(
     config: TextIO,
     package: str,
     ignore_package: str,
+    push: bool,
+    commit: bool,
 ) -> None:
     """Update packages."""
     conf = Config.load_from_yaml(config)
+
+    if push and not commit:
+        click.secho(
+            "Warning: Pushing and not committing may have unexpected results.",
+            err=True,
+            fg="yellow"
+        )
 
     if package is None:
         for p in conf.packages:
             if ignore_package and ignore_package == p.name:
                 click.secho(f"Ignoring {p.name}", fg="magenta")
             else:
-                process_package(p)
+                process_package(p, push=push, commit=commit)
     else:
         for p in conf.packages:
             if p.name == package:
-                process_package(p)
+                process_package(p, push=push, commit=commit)
 
 
 if __name__ == "__main__":
