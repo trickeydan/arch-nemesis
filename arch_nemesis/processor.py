@@ -30,6 +30,7 @@ def process_source(
 
     return source_url, file_hash, source.get_latest_release()
 
+
 def _generate_srcinfo(dest: Path) -> None:
     """Generate a .SRCINFO file in a given directory."""
     src_info = check_output(["makepkg", "--printsrcinfo"], cwd=dest)
@@ -37,7 +38,13 @@ def _generate_srcinfo(dest: Path) -> None:
     with src_info_path.open("wb") as fh:
         fh.write(src_info)
 
-def _update_repo(commit: bool = True, push: bool = True) -> None:
+
+def _update_repo(
+    repo: Repo,
+    release_version: str,
+    commit: bool = True,
+    push: bool = True,
+) -> None:
     """Update the repo."""
     click.secho("Updating AUR")
     if commit:
@@ -45,6 +52,7 @@ def _update_repo(commit: bool = True, push: bool = True) -> None:
         repo.git.commit("-m", f"Updated to {release_version}")
     if push:
         repo.git.push()
+
 
 def process_package(
     package: Package,
@@ -124,7 +132,7 @@ def process_package(
         )
         _generate_srcinfo(dest)
 
-        _update_repo(commit, push)
-        
+        _update_repo(repo, release_version, commit, push)
+
     else:
         click.secho(f"No changes required for {package.name}")
