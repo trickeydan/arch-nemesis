@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "arch_nemesis"
-version = "0.1.0"
+version = "0.2.0"
 description = "AUR Package Updater"
 authors = ["Dan Trickey <dan@trickey.io>"]
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/"
-homepage = "https://github.com/"
+repository = "https://github.com/trickeydan/arch-nemesis.git"
+homepage = "https://github.com/trickeydan/arch-nemesis"
 documentation = "https://readthedocs.io"
 classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
