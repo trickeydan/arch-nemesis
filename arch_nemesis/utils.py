@@ -91,11 +91,13 @@ def parse_pkgbuild(path: Path) -> Dict[str, str]:
 
     data: Dict[str, str] = {}
 
-    with path.open("r") as fh:
-        contents = fh.readlines()
-        for line in contents:
-            match = regex.match(line.strip())
-            if match:
-                data[match[1]] = match[2].strip()
-
+    try:
+        with path.open("r") as fh:
+            contents = fh.readlines()
+            for line in contents:
+                match = regex.match(line.strip())
+                if match:
+                    data[match[1]] = match[2].strip()
+    except FileNotFoundError:
+        pass
     return data

@@ -94,9 +94,12 @@ def process_package(
     pkgbuild = parse_pkgbuild(dest / "PKGBUILD")
 
     if len(pkgbuild) == 0:
-        raise Exception("Seems to be a new package. Not supported yet.")
-
-    rel = int(pkgbuild["pkgrel"])
+        rel = 1
+        new_package = True
+        click.secho(f"No such package in the AUR", fg="red")
+    else:
+        new_package = False
+        rel = int(pkgbuild["pkgrel"])
 
     click.secho(f"Current pkgrel is {rel}")
 
@@ -131,8 +134,8 @@ def process_package(
             version=release_version,
         )
         _generate_srcinfo(dest)
-
         _update_repo(repo, release_version, commit, push)
-
+    elif new_package:
+        _update_repo(repo, release_version, commit, push)
     else:
         click.secho(f"No changes required for {package.name}")
