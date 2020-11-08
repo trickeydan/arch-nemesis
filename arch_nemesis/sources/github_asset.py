@@ -1,6 +1,7 @@
 """Github Asset Source."""
 
 from abc import abstractmethod
+from os import environ
 from re import compile
 from typing import Any, List, Optional
 
@@ -17,7 +18,9 @@ class GithubBaseClass(PackageSource):
     def __init__(self, config: Any) -> None:
         self.config = config
 
-        gh = Github("e7c0110cdf64a8fa718c2e4d41dc24c0495ccbbb")
+        if "GITHUB_TOKEN" not in environ:
+            raise Exception("Cannot find GITHUB_TOKEN in enviuro")
+        gh = Github(environ["GITHUB_TOKEN"])
         self.repo = gh.get_repo(self.config.github_repo)
 
         self.selected = self._get_most_recent()

@@ -79,7 +79,7 @@ def process_package(
         else:
             if release_version != version:
                 raise Exception("Mismatched version between sources.")
-    
+
     # Remove illegal characters
     release_version = sub("-", "_", release_version)
 
@@ -100,7 +100,7 @@ def process_package(
     if len(pkgbuild) == 0:
         rel = 1
         new_package = True
-        click.secho(f"No such package in the AUR", fg="red")
+        click.secho("No such package in the AUR", fg="red")
     else:
         new_package = False
         rel = int(pkgbuild["pkgrel"])
