@@ -1,6 +1,7 @@
 """Processing."""
 
 from pathlib import Path
+from re import sub
 from shutil import rmtree
 from subprocess import check_output
 from typing import Optional, Tuple, cast
@@ -78,6 +79,9 @@ def process_package(
         else:
             if release_version != version:
                 raise Exception("Mismatched version between sources.")
+    
+    # Remove illegal characters
+    release_version = sub("-", "_", release_version)
 
     click.secho(f"Processed {len(package.sources)} sources.")
     click.secho(f"Latest release: {release_version}")
