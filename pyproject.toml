@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "arch_nemesis"
-version = "0.2.0"
+version = "0.2.1"
 description = "AUR Package Updater"
 authors = ["Dan Trickey <dan@trickey.io>"]
 license = "MIT"
