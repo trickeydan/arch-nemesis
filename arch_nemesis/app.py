@@ -7,6 +7,8 @@ from typing import TextIO
 import click
 from pydantic import ValidationError
 
+from arch_nemesis import __version__
+
 from .processor import process_package
 from .schema import Config
 
@@ -123,6 +125,12 @@ def go(
         for p in conf.packages:
             if p.name == package:
                 process_package(p, push=push, commit=commit)
+
+
+@main.command("version")
+def version() -> None:
+    """Print the current version."""
+    click.echo(__version__)
 
 
 if __name__ == "__main__":
